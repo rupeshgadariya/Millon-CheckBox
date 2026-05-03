@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>One Million Checkboxes ☑️</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --border: #2a2a3a;
+      --accent: #00ff88;
+      --accent2: #ff3366;
+      --text: #e0e0ff;
+      --muted: #555577;
+      --checked-bg: #00ff8822;
+      --row-h: 28px;
+      --cols: 50;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 28px;
+      letter-spacing: 2px;
+      color: var(--accent);
+      text-shadow: 0 0 20px var(--accent);
+    }
+
+    .logo span { color: var(--accent2); }
+
+    .stats-bar {
+      display: flex;
+      gap: 24px;
+      align-items: center;
+    }
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .stat-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: 'Bebas Neue', sans-serif;
+      letter-spacing: 1px;
+    }
+
+    .stat-label {
+      font-size: 9px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .connection-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s;
+    }
+    .connection-dot.connected { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+    .connection-dot.disconnected { background: var(--accent2); }
+
+    /* PROGRESS BAR */
+    .progress-wrap {
+      height: 3px;
+      background: var(--border);
+      width: 100%;
+    }
+    .progress-bar {
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      width: 0%;
+      transition: width 0.5s ease;
+      box-shadow: 0 0 10px var(--accent);
+    }
+
+    /* CONTROLS */
+    .controls {
+      padding: 12px 24px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .btn {
+      padding: 6px 16px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+    .btn.danger:hover { border-color: var(--accent2); color: var(--accent2); }
+
+    .goto-wrap {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-left: auto;
+    }
+
+    .goto-input {
+      padding: 6px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Space Mono', monospace;
+      font-size: 11px;
+      width: 120px;
+    }
+
+    .goto-input:focus { outline: none; border-color: var(--accent); }
+
+    /* VIRTUAL SCROLL CONTAINER */
+    .viewport {
+      height: calc(100vh - 130px);
+      overflow-y: auto;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .viewport::-webkit-scrollbar { width: 6px; }
+    .viewport::-webkit-scrollbar-track { background: var(--bg); }
+    .viewport::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .total-height-spacer {
+      width: 1px;
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+
+    .rows-container {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+    }
+
+    /* ROWS */
+    .cb-row {
+      display: flex;
+      align-items: center;
+      height: var(--row-h);
+      padding: 0 8px;
+      gap: 2px;
+      border-bottom: 1px solid transparent;
+    }
+
+    .cb-row:hover { background: rgba(255,255,255,0.02); }
+
+    .row-num {
+      font-size: 9px;
+      color: var(--muted);
+      width: 70px;
+      flex-shrink: 0;
+      text-align: right;
+      padding-right: 12px;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .cb-wrap {
+      display: flex;
+      gap: 2px;
+      flex: 1;
+      flex-wrap: nowrap;
+    }
+
+    /* Custom checkbox */
+    .cb {
+      width: 16px; height: 16px;
+      border: 1px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      position: relative;
+      flex-shrink: 0;
+      transition: border-color 0.1s, background 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 2px;
+    }
+
+    .cb:hover { border-color: var(--accent); }
+
+    .cb.checked {
+      background: var(--checked-bg);
+      border-color: var(--accent);
+    }
+
+    .cb.checked::after {
+      content: '';
+      width: 8px;
+      height: 5px;
+      border-left: 2px solid var(--accent);
+      border-bottom: 2px solid var(--accent);
+      transform: rotate(-45deg) translateY(-1px);
+      display: block;
+    }
+
+    .cb.flash {
+      animation: flashAnim 0.3s ease;
+    }
+
+    @keyframes flashAnim {
+      0% { box-shadow: 0 0 0 0 var(--accent); }
+      50% { box-shadow: 0 0 0 4px var(--accent); }
+      100% { box-shadow: 0 0 0 0 transparent; }
+    }
+
+    /* TOAST */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      padding: 10px 18px;
+      font-size: 12px;
+      font-family: 'Space Mono', monospace;
+      z-index: 999;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s;
+      pointer-events: none;
+    }
+
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* Loading */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      gap: 16px;
+    }
+
+    .loading-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 48px;
+      color: var(--accent);
+      text-shadow: 0 0 30px var(--accent);
+      letter-spacing: 4px;
+    }
+
+    .loading-sub {
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 2px;
+    }
+
+    .spinner {
+      width: 40px; height: 40px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-title">☑ ONE MILLION</div>
+  <div class="spinner"></div>
+  <div class="loading-sub">Connecting to server...</div>
+</div>
+
+<!-- Header -->
+<header>
+  <div class="logo">ONE<span>M</span> BOXES</div>
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-value" id="checkedCount">0</div>
+      <div class="stat-label">Checked</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="uncheckedCount">1,000,000</div>
+      <div class="stat-label">Unchecked</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="clientCount">0</div>
+      <div class="stat-label">Online</div>
+    </div>
+    <div class="connection-dot disconnected" id="connDot" title="Disconnected"></div>
+  </div>
+</header>
+
+<!-- Progress -->
+<div class="progress-wrap">
+  <div class="progress-bar" id="progressBar"></div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <button class="btn" onclick="checkAll()">Check All</button>
+  <button class="btn danger" onclick="uncheckAll()">Uncheck All</button>
+  <div class="goto-wrap">
+    <span style="font-size:11px;color:var(--muted)">GOTO #</span>
+    <input class="goto-input" type="number" id="gotoInput" placeholder="1 - 1000000" min="1" max="1000000"/>
+    <button class="btn" onclick="gotoCheckbox()">Go</button>
+  </div>
+</div>
+
+<!-- Virtual Scroll Viewport -->
+<div class="viewport" id="viewport">
+  <div class="total-height-spacer" id="spacer"></div>
+  <div class="rows-container" id="rowsContainer"></div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+  const TOTAL = 1_000_000;
+  const COLS = 50;
+  const ROW_H = 28;
+  const ROWS = Math.ceil(TOTAL / COLS); // 20000 rows
+
+  // Backend URL - change this when deploying!
+  const BACKEND_URL = window.location.protocol === 'file:'
+    ? 'http://localhost:8080'
+    : window.location.origin;
+  const WS_URL = BACKEND_URL.replace(/^http/, 'ws');
+
+  // State: bit array (1M booleans)
+  // Use Uint8Array for memory efficiency
+  const state = new Uint8Array(Math.ceil(TOTAL / 8));
+
+  function getBit(i) {
+    return (state[Math.floor(i / 8)] >> (7 - (i % 8))) & 1;
+  }
+
+  function setBit(i, val) {
+    const byte = Math.floor(i / 8);
+    const bit = 7 - (i % 8);
+    if (val) state[byte] |= (1 << bit);
+    else state[byte] &= ~(1 << bit);
+  }
+
+  let checkedCount = 0;
+  let ws = null;
+  let isConnected = false;
+  let loadedRanges = new Set(); // Track which rows have been loaded
+
+  // ---- WebSocket ----
+  function connect() {
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+      isConnected = true;
+      document.getElementById('connDot').className = 'connection-dot connected';
+      document.getElementById('loadingOverlay').style.display = 'none';
+      // Request initial visible range
+      requestVisibleRange();
+      showToast('Connected! ✓');
+    };
+
+    ws.onclose = () => {
+      isConnected = false;
+      document.getElementById('connDot').className = 'connection-dot disconnected';
+      showToast('Disconnected. Reconnecting...');
+      setTimeout(connect, 2000);
+    };
+
+    ws.onerror = () => {
+      showToast('Connection error!');
+    };
+
+    ws.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+
+      if (data.type === 'stats') {
+        checkedCount = data.checkedCount;
+        updateStats();
+        updateClientCount(data.totalClients);
+      }
+
+      if (data.type === 'toggle') {
+        const old = getBit(data.index);
+        setBit(data.index, data.value);
+        if (data.value && !old) checkedCount++;
+        else if (!data.value && old) checkedCount--;
+        checkedCount = data.checkedCount; // Use server count for accuracy
+        updateStats();
+        updateCheckboxInDOM(data.index, data.value, true);
+      }
+
+      if (data.type === 'rangeData') {
+        const { start, bits } = data;
+        bits.forEach((bit, i) => {
+          const idx = start + i;
+          if (idx < TOTAL) {
+            setBit(idx, bit);
+          }
+        });
+        // Re-render visible rows
+        renderVisibleRows();
+      }
+
+      if (data.type === 'clientCount') {
+        updateClientCount(data.totalClients);
+      }
+    };
+  }
+
+  // ---- Virtual Scroll ----
+  const viewport = document.getElementById('viewport');
+  const spacer = document.getElementById('spacer');
+  const rowsContainer = document.getElementById('rowsContainer');
+
+  const totalHeight = ROWS * ROW_H;
+  spacer.style.height = totalHeight + 'px';
+
+  let renderedStart = -1;
+  let renderedEnd = -1;
+  const BUFFER = 5; // extra rows above/below
+
+  function getVisibleRange() {
+    const scrollTop = viewport.scrollTop;
+    const vh = viewport.clientHeight;
+    const startRow = Math.max(0, Math.floor(scrollTop / ROW_H) - BUFFER);
+    const endRow = Math.min(ROWS - 1, Math.ceil((scrollTop + vh) / ROW_H) + BUFFER);
+    return { startRow, endRow };
+  }
+
+  function renderVisibleRows(force = false) {
+    const { startRow, endRow } = getVisibleRange();
+    if (!force && startRow === renderedStart && endRow === renderedEnd) return;
+    renderedStart = startRow;
+    renderedEnd = endRow;
+
+    rowsContainer.style.transform = `translateY(${startRow * ROW_H}px)`;
+    rowsContainer.innerHTML = '';
+
+    for (let r = startRow; r <= endRow; r++) {
+      const rowEl = document.createElement('div');
+      rowEl.className = 'cb-row';
+      rowEl.dataset.row = r;
+
+      const rowNum = document.createElement('div');
+      rowNum.className = 'row-num';
+      rowNum.textContent = (r * COLS + 1).toLocaleString();
+      rowEl.appendChild(rowNum);
+
+      const wrap = document.createElement('div');
+      wrap.className = 'cb-wrap';
+
+      for (let c = 0; c < COLS; c++) {
+        const idx = r * COLS + c;
+        if (idx >= TOTAL) break;
+
+        const cb = document.createElement('div');
+        cb.className = 'cb' + (getBit(idx) ? ' checked' : '');
+        cb.dataset.idx = idx;
+        cb.title = `#${idx + 1}`;
+        cb.addEventListener('click', () => toggleCheckbox(idx));
+        wrap.appendChild(cb);
+      }
+
+      rowEl.appendChild(wrap);
+      rowsContainer.appendChild(rowEl);
+    }
+  }
+
+  function requestVisibleRange() {
+    const { startRow, endRow } = getVisibleRange();
+    const start = startRow * COLS;
+    const end = Math.min((endRow + 1) * COLS - 1, TOTAL - 1);
+
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: 'getRange', start, end }));
+    }
+  }
+
+  let scrollTimer = null;
+  viewport.addEventListener('scroll', () => {
+    renderVisibleRows();
+    clearTimeout(scrollTimer);
+    scrollTimer = setTimeout(requestVisibleRange, 150);
+  });
+
+  // ---- Toggle ----
+  function toggleCheckbox(index) {
+    if (!isConnected) { showToast('Not connected!'); return; }
+    ws.send(JSON.stringify({ type: 'toggle', index }));
+  }
+
+  function updateCheckboxInDOM(index, value, flash = false) {
+    const cb = rowsContainer.querySelector(`[data-idx="${index}"]`);
+    if (cb) {
+      cb.className = 'cb' + (value ? ' checked' : '') + (flash ? ' flash' : '');
+      if (flash) setTimeout(() => cb.classList.remove('flash'), 300);
+    }
+  }
+
+  // ---- Stats ----
+  function updateStats() {
+    document.getElementById('checkedCount').textContent = checkedCount.toLocaleString();
+    document.getElementById('uncheckedCount').textContent = (TOTAL - checkedCount).toLocaleString();
+    const pct = (checkedCount / TOTAL) * 100;
+    document.getElementById('progressBar').style.width = pct + '%';
+  }
+
+  function updateClientCount(n) {
+    document.getElementById('clientCount').textContent = n.toLocaleString();
+  }
+
+  // ---- Controls ----
+  function checkAll() {
+    if (!confirm('Check ALL 1 million? This will take a moment...')) return;
+    // For demo: just toggle visible ones (server-side bulk would be ideal)
+    showToast('Checking all... (bulk op)');
+    // Send individual for visible, server handles rest
+    for (let i = 0; i < TOTAL; i++) {
+      if (!getBit(i)) {
+        ws.send(JSON.stringify({ type: 'toggle', index: i }));
+      }
+    }
+  }
+
+  function uncheckAll() {
+    if (!confirm('Uncheck ALL 1 million?')) return;
+    showToast('Unchecking all...');
+    for (let i = 0; i < TOTAL; i++) {
+      if (getBit(i)) {
+        ws.send(JSON.stringify({ type: 'toggle', index: i }));
+      }
+    }
+  }
+
+  function gotoCheckbox() {
+    const val = parseInt(document.getElementById('gotoInput').value);
+    if (!val || val < 1 || val > TOTAL) {
+      showToast('Enter 1 to 1,000,000');
+      return;
+    }
+    const idx = val - 1;
+    const row = Math.floor(idx / COLS);
+    viewport.scrollTop = row * ROW_H - viewport.clientHeight / 2;
+    setTimeout(() => {
+      renderVisibleRows(true);
+      const cb = rowsContainer.querySelector(`[data-idx="${idx}"]`);
+      if (cb) {
+        cb.style.outline = '2px solid #ff3366';
+        setTimeout(() => cb.style.outline = '', 2000);
+      }
+    }, 100);
+  }
+
+  // ---- Toast ----
+  let toastTimer = null;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ---- Init ----
+  renderVisibleRows(true);
+  connect();
+</script>
+</body>
+</html>
