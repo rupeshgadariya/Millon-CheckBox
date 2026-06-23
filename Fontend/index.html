@@ -365,10 +365,8 @@
   const ROWS = Math.ceil(TOTAL / COLS); // 20000 rows
 
   // Backend URL - change this when deploying!
-  const BACKEND_URL = window.location.protocol === 'file:'
-    ? 'https://millon-checkbox.onrender.com'
-    : window.location.origin;
-  const WS_URL = BACKEND_URL.replace(/^http/, 'ws');
+const BACKEND_URL = 'https://millon-checkbox.onrender.com';
+const WS_URL = BACKEND_URL.replace(/^http/, 'ws');
 
   // State: bit array (1M booleans)
   // Use Uint8Array for memory efficiency
